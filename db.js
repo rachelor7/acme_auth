@@ -20,6 +20,10 @@ const User = conn.define("user", {
   password: STRING,
 });
 
+const Note = conn.define("note", {
+  text: STRING
+})
+
 User.byToken = async (token) => {
   try {
     let payload = jwt.verify(token, process.env.JWT);
@@ -63,7 +67,7 @@ User.authenticate = async ({ username, password }) => {
   }
 };
 
-User.beforeCreate(async (user, options) => {
+User.beforeCreate(async (user) => {
   await bcrypt.hash(user.password, saltRounds).then(function (hash) {
     user.password = hash;
   });
@@ -80,6 +84,19 @@ const syncAndSeed = async () => {
   const [lucy, moe, larry] = await Promise.all(
     credentials.map((credential) => User.create(credential))
   );
+
+  const notes = [
+    { text: "lucy note 1" }, { text: "lucy note 2" }, { text: "moe note 1" }, { text: "moe note 2" }, { text: "moe note 3" },
+  ];
+  const [note1, note2, note3, note4, note5] = await Promise.all(
+    notes.map((note) => Note.create(note))
+  );
+
+lucy.setNotes([note1, note2])
+
+
+moe.setNotes([note3, note4, note5])
+
   return {
     users: {
       lucy,
@@ -89,9 +106,14 @@ const syncAndSeed = async () => {
   };
 };
 
+Note.belongsTo(User)
+User.hasMany(Note)
+
+
 module.exports = {
   syncAndSeed,
   models: {
     User,
+    Note
   },
 };
