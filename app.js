@@ -6,6 +6,18 @@ const {
 } = require("./db");
 const path = require("path");
 
+const requireToken = async (req, res, next) => {
+  try {
+    // req.headers is an extra arg passed in from axios call
+    const token = req.headers.authorization;
+    const user = await User.byToken(token);
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
 
 app.post("/api/auth", async (req, res, next) => {
@@ -16,36 +28,28 @@ app.post("/api/auth", async (req, res, next) => {
   }
 });
 
-app.get('/api/:id/notes', async (req, res, next) => {
+app.get("/api/:id/notes", requireToken, async (req, res, next) => {
   try {
-    // console.log("req!!!", req.headers.authorization)
+    // req.user is from middleware requireToken function
+    const tokenUserId = req.user.id.toString();
 
-    ////have a header
-
-    const token = req.headers.authorization
-
-    const userFromToken = await User.byToken(token)
-    console.log("userFrom Token", userFromToken.dataValues.id)
-    console.log("ID", req.params.id)
-    console.log("PARAMSID", typeof req.params.id)
-    console.log("TOKENID", typeof userFromToken.dataValues.id)
-
-    if(userFromToken.dataValues.id === req.params.id){
-    const user= await User.findByPk(req.params.id, {
-      include: {model: Note}
-    });
-    res.json(user.notes)}
-    {
-      console.log("User does not have access")
+    if (tokenUserId === req.params.id) {
+      const user = await User.findByPk(req.params.id, {
+        include: { model: Note },
+      });
+      res.json(user.notes);
+    } else {
+      console.log("User does not have access");
     }
   } catch (err) {
     next(err);
   }
 });
 
-app.get("/api/auth", async (req, res, next) => {
+app.get("/api/auth", requireToken, async (req, res, next) => {
   try {
-    res.send(await User.byToken(req.headers.authorization));
+    // res.send(await User.byToken(req.headers.authorization));
+    res.send(req.user);
   } catch (ex) {
     next(ex);
   }

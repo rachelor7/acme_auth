@@ -21,8 +21,8 @@ const User = conn.define("user", {
 });
 
 const Note = conn.define("note", {
-  text: STRING
-})
+  text: STRING,
+});
 
 User.byToken = async (token) => {
   try {
@@ -31,9 +31,6 @@ User.byToken = async (token) => {
     if (user) {
       return user;
     }
-    const error = Error("bad credentials");
-    error.status = 401;
-    throw error;
   } catch (ex) {
     const error = Error("bad credentials");
     error.status = 401;
@@ -53,7 +50,7 @@ User.authenticate = async ({ username, password }) => {
     //compare hash to password
     const correct = await bcrypt.compare(password, user.password);
     if (correct) {
-      let token = await jwt.sign({ userId: user.id }, process.env.JWT);
+      const token = await jwt.sign({ userId: user.id }, process.env.JWT);
       return token;
     } else {
       const error = Error("bad credentials");
@@ -68,9 +65,11 @@ User.authenticate = async ({ username, password }) => {
 };
 
 User.beforeCreate(async (user) => {
-  await bcrypt.hash(user.password, saltRounds).then(function (hash) {
-    user.password = hash;
-  });
+  // await bcrypt.hash(user.password, saltRounds).then(function (hash) {
+  //   user.password = hash;
+  // });
+  const hash = await bcrypt.hash(user.password, saltRounds);
+  user.password = hash;
 });
 
 const syncAndSeed = async () => {
@@ -86,16 +85,19 @@ const syncAndSeed = async () => {
   );
 
   const notes = [
-    { text: "lucy note 1" }, { text: "lucy note 2" }, { text: "moe note 1" }, { text: "moe note 2" }, { text: "moe note 3" },
+    { text: "lucy note 1" },
+    { text: "lucy note 2" },
+    { text: "moe note 1" },
+    { text: "moe note 2" },
+    { text: "moe note 3" },
   ];
   const [note1, note2, note3, note4, note5] = await Promise.all(
     notes.map((note) => Note.create(note))
   );
 
-lucy.setNotes([note1, note2])
+  lucy.setNotes([note1, note2]);
 
-
-moe.setNotes([note3, note4, note5])
+  moe.setNotes([note3, note4, note5]);
 
   return {
     users: {
@@ -106,14 +108,13 @@ moe.setNotes([note3, note4, note5])
   };
 };
 
-Note.belongsTo(User)
-User.hasMany(Note)
-
+Note.belongsTo(User);
+User.hasMany(Note);
 
 module.exports = {
   syncAndSeed,
   models: {
     User,
-    Note
+    Note,
   },
 };
