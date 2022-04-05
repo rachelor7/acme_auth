@@ -42,34 +42,23 @@ User.authenticate = async ({ username, password }) => {
   const user = await User.findOne({
     where: {
       username,
-      // password,
     },
   });
-
   if (user) {
-    //compare hash to password
-    const correct = await bcrypt.compare(password, user.password);
-    if (correct) {
-      const token = await jwt.sign({ userId: user.id }, process.env.JWT);
-      return token;
-    } else {
-      const error = Error("bad credentials");
-      error.status = 401;
-      throw error;
+    //compare hashed user input pw to hashed pw stored in db
+    const match = await bcrypt.compare(password, user.password);
+    if (match) {
+      return await jwt.sign({ userId: user.id }, process.env.JWT);
     }
-  } else {
-    const error = Error("bad credentials");
-    error.status = 401;
-    throw error;
   }
+  const error = Error("bad credentials");
+  error.status = 401;
+  throw error;
 };
 
 User.beforeCreate(async (user) => {
-  // await bcrypt.hash(user.password, saltRounds).then(function (hash) {
-  //   user.password = hash;
-  // });
-  const hash = await bcrypt.hash(user.password, saltRounds);
-  user.password = hash;
+  const hashedPassword = await bcrypt.hash(user.password, saltRounds);
+  user.password = hashedPassword;
 });
 
 const syncAndSeed = async () => {

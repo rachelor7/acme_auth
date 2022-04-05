@@ -30,10 +30,10 @@ app.post("/api/auth", async (req, res, next) => {
 
 app.get("/api/:id/notes", requireToken, async (req, res, next) => {
   try {
-    // req.user is from middleware requireToken function
-    const tokenUserId = req.user.id.toString();
+    // req.user is returned from middleware requireToken function
+    const userIdFromToken = req.user.id.toString();
 
-    if (tokenUserId === req.params.id) {
+    if (userIdFromToken === req.params.id) {
       const user = await User.findByPk(req.params.id, {
         include: { model: Note },
       });
@@ -49,6 +49,7 @@ app.get("/api/:id/notes", requireToken, async (req, res, next) => {
 app.get("/api/auth", requireToken, async (req, res, next) => {
   try {
     // res.send(await User.byToken(req.headers.authorization));
+    // req.user is returned from middleware requireToken function
     res.send(req.user);
   } catch (ex) {
     next(ex);
